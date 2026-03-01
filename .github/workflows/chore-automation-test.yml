@@ -4,18 +4,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  approval:
-    name: Await manual approval
-    runs-on: ubuntu-latest
-    environment:
-      name: chore-automation-approval
-    steps:
-      - name: Approval checkpoint
-        run: echo "Approval received. Continuing test workflow."
-
   test-notify:
     name: Run notify script
-    needs: approval
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

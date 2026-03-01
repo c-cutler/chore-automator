@@ -11,8 +11,6 @@ const KEYS = {
 	person2ExtendedChores: 'Person 2 extended chores',
 	person1ActiveExtended: 'Person 1 active extended chore',
 	person2ActiveExtended: 'Person 2 active extended chore',
-	person1ChoreIndex: 'Person 1 chore index',
-	person2ChoreIndex: 'Person 2 chore index',
 }
 
 function ensureArray(value, keyName) {
@@ -38,8 +36,12 @@ function buildSlackMessage(assignments) {
 	for (const assignment of assignments) {
 		lines.push(`${assignment.name}, your chores are as follows:`)
 		lines.push('')
-		lines.push(`1 - ${assignment.chore}`)
-		lines.push(`2 - ${assignment.extendedChore}`)
+
+		for (let index = 0; index < assignment.chores.length; index += 1) {
+			lines.push(`${index + 1} - ${assignment.chores[index]}`)
+		}
+
+		lines.push(`${assignment.chores.length + 1} - ${assignment.extendedChore}`)
 		lines.push('')
 	}
 
@@ -76,8 +78,6 @@ async function main() {
 		person2ExtendedRaw,
 		person1ActiveExtended,
 		person2ActiveExtended,
-		person1ChoreIndexRaw,
-		person2ChoreIndexRaw,
 	] = await Promise.all([
 		redis.get(KEYS.person1Name),
 		redis.get(KEYS.person2Name),
@@ -87,8 +87,6 @@ async function main() {
 		redis.get(KEYS.person2ExtendedChores),
 		redis.get(KEYS.person1ActiveExtended),
 		redis.get(KEYS.person2ActiveExtended),
-		redis.get(KEYS.person1ChoreIndex),
-		redis.get(KEYS.person2ChoreIndex),
 	])
 
 	if (!person1Name || !person2Name) {
@@ -100,21 +98,18 @@ async function main() {
 	const person1ExtendedChores = ensureArray(person1ExtendedRaw, KEYS.person1ExtendedChores)
 	const person2ExtendedChores = ensureArray(person2ExtendedRaw, KEYS.person2ExtendedChores)
 
-	const person1ChoreIndex = Number.isInteger(Number(person1ChoreIndexRaw)) ? Number(person1ChoreIndexRaw) : 0
-	const person2ChoreIndex = Number.isInteger(Number(person2ChoreIndexRaw)) ? Number(person2ChoreIndexRaw) : 0
-
 	const person1ExtendedIndex = findExtendedIndex(person1ExtendedChores, person1ActiveExtended)
 	const person2ExtendedIndex = findExtendedIndex(person2ExtendedChores, person2ActiveExtended)
 
 	const assignments = [
 		{
 			name: person1Name,
-			chore: person1Chores[person1ChoreIndex % person1Chores.length],
+			chores: person1Chores,
 			extendedChore: person1ExtendedChores[person1ExtendedIndex],
 		},
 		{
 			name: person2Name,
-			chore: person2Chores[person2ChoreIndex % person2Chores.length],
+			chores: person2Chores,
 			extendedChore: person2ExtendedChores[person2ExtendedIndex],
 		},
 	]
@@ -129,8 +124,6 @@ async function main() {
 	await Promise.all([
 		redis.set(KEYS.person1Name, person2Name),
 		redis.set(KEYS.person2Name, person1Name),
-		redis.set(KEYS.person1ChoreIndex, person1ChoreIndex + 1),
-		redis.set(KEYS.person2ChoreIndex, person2ChoreIndex + 1),
 		redis.set(KEYS.person1ActiveExtended, person1ExtendedChores[nextPerson1ExtendedIndex]),
 		redis.set(KEYS.person2ActiveExtended, person2ExtendedChores[nextPerson2ExtendedIndex]),
 	])
